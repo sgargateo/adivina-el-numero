@@ -1,46 +1,7 @@
-<!doctype html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Adivina el número</title>
-<style>
-body{font-family:Arial,sans-serif;background:#f3f5f7;margin:0;color:#18212b}
-main{max-width:850px;margin:auto;padding:24px}
-.card{background:#fff;border-radius:18px;padding:24px;margin:16px 0;box-shadow:0 4px 18px #0001}
-input,button{width:100%;padding:14px;margin:7px 0;font-size:18px;border-radius:10px;box-sizing:border-box}
-input{border:1px solid #ccd3d8} button{background:#18212b;color:white;border:0}
-.code{font-size:32px;font-weight:bold;text-align:center;letter-spacing:4px}
-.qr{text-align:center;margin:20px}.qr img{width:240px;height:240px}
-.msg{text-align:center;font-size:25px;font-weight:bold;min-height:45px}
-.muted{color:#66727d}
-table{width:100%;border-collapse:collapse}td,th{padding:10px;border-bottom:1px solid #eee;text-align:left}
-</style>
-</head>
-<body><main><div id="app"></div>
-<script>
-const qs=new URLSearchParams(location.search);
-const mode=qs.get("modo")||"participante";
-const sala=qs.get("sala")||"";
-const app=document.getElementById("app");
-if(mode==="profesor"){
-app.innerHTML=`
-<div class="card"><h1>🎯 Adivina el número</h1>
-<h2>👩‍🏫 Panel del profesor</h2>
-<input id="secret" type="number" min="1" max="100" placeholder="Número secreto">
-<button>Iniciar nueva ronda</button>
-<div id="room" class="code">SALA-XXXX</div>
-<div class="qr"><img id="qr" alt="QR"></div>
-<p class="muted" style="text-align:center">Proyecta este QR para que los alumnos entren.</p></div>
-<div class="card"><h2>👥 Participantes</h2><div id="ranking">Esperando...</div></div>`;
-}else{
-app.innerHTML=`
-<div class="card"><h1>🎯 Adivina el número</h1>
-<h2>📱 Participante</h2>
-<input id="name" placeholder="Tu nombre">
-<input id="guess" type="number" min="1" max="100" placeholder="Número entre 1 y 100">
-<button>Probar número</button>
-<div id="msg" class="msg"></div>
-<div id="attempts" class="muted">Intentos: 0</div></div>`;
-}
-</script></main></body></html>
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Adivina el número</title><style>body{font-family:Arial;margin:0;background:#f3f5f7;color:#17202a}main{max-width:900px;margin:auto;padding:20px}.card{background:#fff;border-radius:18px;padding:24px;margin:15px 0;box-shadow:0 4px 18px #0001}input,button{width:100%;padding:13px;margin:6px 0;font-size:18px;border-radius:10px;box-sizing:border-box}input{border:1px solid #ccd3d8}button{background:#17202a;color:white;border:0;cursor:pointer}.secondary{background:#e8edf1;color:#17202a}.code{text-align:center;font-size:34px;font-weight:bold;letter-spacing:5px}.qr{text-align:center;margin:18px}.qr img{width:250px;height:250px}.msg{text-align:center;font-size:27px;font-weight:bold;min-height:45px;margin:18px 0}.muted{color:#687580;font-size:14px}.hidden{display:none}table{width:100%;border-collapse:collapse}td,th{padding:10px;border-bottom:1px solid #eee;text-align:left}.ok{font-size:32px}</style></head><body><main><div class="card"><h1>🎯 Adivina el número</h1><div class="muted">Juego interactivo para clase</div></div><section id="teacher" class="hidden"><div class="card"><h2>👩‍🏫 Pantalla del profesor</h2><input id="secret" type="number" min="1" max="100" placeholder="Número secreto (1–100)"><button id="create">Crear sala y generar QR</button><div id="room" class="code">----</div><div class="qr"><img id="qr" alt="QR"></div><div id="link" class="muted" style="text-align:center"></div><p id="state" style="text-align:center">Crea una sala para comenzar.</p></div><div class="card"><h2>🏆 Ranking</h2><div id="ranking">Aún no hay ganadores.</div></div></section><section id="player" class="hidden"><div class="card"><h2>📱 Pantalla del participante</h2><p>Sala: <b id="proom"></b></p><input id="name" placeholder="Tu nombre"><input id="guess" type="number" min="1" max="100" placeholder="Número entre 1 y 100"><button id="try">Probar número</button><div id="msg" class="msg"></div><div id="att" class="muted" style="text-align:center">Intentos: 0</div></div></section><section id="home" class="card hidden"><button onclick="location.href='?modo=profesor'">👩‍🏫 Soy profesor</button><button class="secondary" onclick="location.href='?modo=participante'">📱 Soy participante</button></section></main><script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";import{getDatabase,ref,set,push,onValue,onChildAdded}from"https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
+const firebaseConfig={apiKey:"AIzaSyAJervUq7PKrAncGWR20YL_yH2Ut399VY8",authDomain:"adivina-el-numero-b1239.firebaseapp.com",databaseURL:"https://adivina-el-numero-b1239-default-rtdb.firebaseio.com",projectId:"adivina-el-numero-b1239",storageBucket:"adivina-el-numero-b1239.firebasestorage.app",messagingSenderId:"1002866563599",appId:"1:1002866563599:web:bf0c83973c475477eba17a"};
+const db=getDatabase(initializeApp(firebaseConfig)),p=new URLSearchParams(location.search),mode=p.get("modo"),room=p.get("sala");const $=x=>document.getElementById(x);function rid(){return Math.random().toString(36).slice(2,6).toUpperCase()}function pid(){let x=localStorage.getItem("adivinaPid");if(!x){x=crypto.randomUUID();localStorage.setItem("adivinaPid",x)}return x}function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+if(mode==="profesor"){$("teacher").classList.remove("hidden");$("create").onclick=async()=>{const secret=+$("secret").value;if(secret<1||secret>100){alert("Ingresa un número entre 1 y 100");return}const r=rid();await set(ref(db,"rooms/"+r),{active:true,createdAt:Date.now()});$("room").textContent=r;const u=location.origin+location.pathname+"?modo=participante&sala="+r;$("qr").src="https://quickchart.io/qr?size=300&text="+encodeURIComponent(u);$("link").textContent=u;$("state").textContent="🟢 Sala activa. Comparte el QR.";startTeacher(r,secret)}}else if(mode==="participante"&&room){$("player").classList.remove("hidden");$("proom").textContent=room;const id=pid();onValue(ref(db,"rooms/"+room),s=>{if(!s.exists())$("msg").textContent="⚠️ Sala no encontrada"});$("try").onclick=async()=>{const name=$("name").value.trim()||"Participante",g=+$("guess").value;if(g<1||g>100){alert("Ingresa un número entre 1 y 100");return}const k=push(ref(db,"guesses/"+room+"/"+id)).key;await set(ref(db,"guesses/"+room+"/"+id+"/"+k),{name,guess:g,at:Date.now()});$("guess").value=""};onValue(ref(db,"results/"+room+"/"+id),s=>{const d=s.val();if(d){$("msg").innerHTML=esc(d.message);$("att").textContent="Intentos: "+d.attempts+(d.correct?" · 🎯 ¡Ganaste!":"")}})}else{$("home").classList.remove("hidden")}
+function startTeacher(r,secret){const scores={},seen={};onChildAdded(ref(db,"guesses/"+r),ps=>{const id=ps.key;onChildAdded(ps.ref,gs=>{const k=id+"/"+gs.key;if(seen[k])return;seen[k]=1;const g=gs.val();scores[id]??={name:g.name,attempts:0,correct:false};scores[id].attempts++;let message=g.guess<secret?"🔼 El número secreto es MAYOR":g.guess>secret?"🔽 El número secreto es MENOR":"🎯 ¡CORRECTO!";if(g.guess===secret)scores[id].correct=true;set(ref(db,"results/"+r+"/"+id),{name:scores[id].name,message,attempts:scores[id].attempts,correct:scores[id].correct,at:Date.now()});draw(scores)})})}function draw(scores){const a=Object.values(scores).filter(x=>x.correct).sort((x,y)=>x.attempts-y.attempts);if(!a.length){$("ranking").textContent="Aún no hay ganadores.";return}$("ranking").innerHTML='<table><tr><th>#</th><th>Participante</th><th>Intentos</th></tr>'+a.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.name)}</td><td>${x.attempts}</td></tr>`).join('')+'</table>'}
+</script></body></html>
