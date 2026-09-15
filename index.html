@@ -44,6 +44,7 @@ table{width:100%;border-collapse:collapse}td,th{padding:11px;border-bottom:1px s
 <input id="secret" type="number" min="1" max="100" placeholder="Ej. 57">
 <button id="createRoom">Crear sala</button>
 <button id="newRound" class="secondary" disabled>🔄 Nueva ronda (mismo QR)</button>
+<button id="downloadExcel" class="secondary" disabled>📥 Descargar resultados en Excel</button>
 </div>
 <div>
 <div class="small center">CÓDIGO DE SALA</div>
@@ -91,6 +92,7 @@ table{width:100%;border-collapse:collapse}td,th{padding:11px;border-bottom:1px s
 </div>
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
 import { getDatabase, ref, set, push, onValue, onChildAdded, remove } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
@@ -110,6 +112,7 @@ const $=id=>document.getElementById(id);
 const roomRef=r=>ref(db,"rooms/"+r);
 let room=salaInicial||null, secret=null, round=0, stopListening=null;
 const scores={};
+const allResults=[];
 
 function randomRoom(){return Math.random().toString(36).slice(2,6).toUpperCase()}
 function pid(){let x=localStorage.getItem("adivinaPlayerId");if(!x){x=crypto.randomUUID();localStorage.setItem("adivinaPlayerId",x)}return x}
@@ -125,7 +128,7 @@ if(mode==="profesor"){
    if(!n||n<1||n>100){alert("Ingresa un número entre 1 y 100.");return}
    room=randomRoom(); secret=n; round=1; Object.keys(scores).forEach(k=>delete scores[k]);
    await set(roomRef(room),{active:true,round,createdAt:Date.now()});
-   setupTeacherUI(); listenGuesses(); $("newRound").disabled=false;
+   setupTeacherUI(); listenGuesses(); $("newRound").disabled=false; $("downloadExcel").disabled=false;
  }
  async function newRound(){
    const n=Number($("secret").value);
@@ -152,6 +155,18 @@ if(mode==="profesor"){
        scores[p].attempts=arr.length;
        const hit=arr.find(x=>Number(x.guess)===secret);
        scores[p].correct=!!hit;
+       const last = arr[arr.length-1];
+       if(last){
+         let row = allResults.find(x=>x.playerId===p && x.round===round);
+         if(!row){
+           row={playerId:p,name:scores[p].name,room,round,attempts:0,lastGuess:Number(last.guess),result:"No acertó"};
+           allResults.push(row);
+         }
+         row.name=scores[p].name;
+         row.attempts=arr.length;
+         row.lastGuess=Number(last.guess);
+         row.result=scores[p].correct ? "Correcto" : "No acertó";
+       }
        total+=arr.length;
        if(arr.length){
          const last=arr[arr.length-1];
@@ -165,6 +180,31 @@ if(mode==="profesor"){
    });
    onValue(ref(db,"presence/"+room),snap=>{$("connected").textContent=Object.keys(snap.val()||{}).length});
  }
+
+ $("downloadExcel").onclick=()=>{
+   if(!allResults.length){alert("Todavía no hay resultados para descargar.");return;}
+   if(typeof XLSX==="undefined"){alert("No se pudo cargar el componente de Excel. Revisa tu conexión a Internet.");return;}
+   const rows=allResults.slice().sort((a,b)=>{
+     if(a.round!==b.round) return a.round-b.round;
+     if(a.result!==b.result) return a.result==="Correcto"?-1:1;
+     return a.attempts-b.attempts;
+   }).map((x,i)=>({
+     "#":i+1,
+     "Participante":x.name,
+     "Sala":x.room,
+     "Ronda":x.round,
+     "Intentos":x.attempts,
+     "Último número":x.lastGuess,
+     "Resultado":x.result
+   }));
+   const ws=XLSX.utils.json_to_sheet(rows);
+   const wb=XLSX.utils.book_new();
+   XLSX.utils.book_append_sheet(wb,ws,"Resultados");
+   ws["!cols"]=[
+     {wch:5},{wch:24},{wch:12},{wch:8},{wch:10},{wch:16},{wch:14}
+   ];
+   XLSX.writeFile(wb,"resultados_adivina_numero_"+room+".xlsx");
+ };
  function renderRanking(){
    const a=Object.values(scores).filter(x=>x.correct).sort((x,y)=>x.attempts-y.attempts);
    if(!a.length){$("teacherRanking").textContent="Aún no hay ganadores.";return}
