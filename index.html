@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Adivina el número</title>
+<style>
+body{font-family:Arial,sans-serif;background:#f3f5f7;margin:0;color:#18212b}
+main{max-width:850px;margin:auto;padding:24px}
+.card{background:#fff;border-radius:18px;padding:24px;margin:16px 0;box-shadow:0 4px 18px #0001}
+input,button{width:100%;padding:14px;margin:7px 0;font-size:18px;border-radius:10px;box-sizing:border-box}
+input{border:1px solid #ccd3d8} button{background:#18212b;color:white;border:0}
+.code{font-size:32px;font-weight:bold;text-align:center;letter-spacing:4px}
+.qr{text-align:center;margin:20px}.qr img{width:240px;height:240px}
+.msg{text-align:center;font-size:25px;font-weight:bold;min-height:45px}
+.muted{color:#66727d}
+table{width:100%;border-collapse:collapse}td,th{padding:10px;border-bottom:1px solid #eee;text-align:left}
+</style>
+</head>
+<body><main><div id="app"></div>
+<script>
+const qs=new URLSearchParams(location.search);
+const mode=qs.get("modo")||"participante";
+const sala=qs.get("sala")||"";
+const app=document.getElementById("app");
+if(mode==="profesor"){
+app.innerHTML=`
+<div class="card"><h1>🎯 Adivina el número</h1>
+<h2>👩‍🏫 Panel del profesor</h2>
+<input id="secret" type="number" min="1" max="100" placeholder="Número secreto">
+<button>Iniciar nueva ronda</button>
+<div id="room" class="code">SALA-XXXX</div>
+<div class="qr"><img id="qr" alt="QR"></div>
+<p class="muted" style="text-align:center">Proyecta este QR para que los alumnos entren.</p></div>
+<div class="card"><h2>👥 Participantes</h2><div id="ranking">Esperando...</div></div>`;
+}else{
+app.innerHTML=`
+<div class="card"><h1>🎯 Adivina el número</h1>
+<h2>📱 Participante</h2>
+<input id="name" placeholder="Tu nombre">
+<input id="guess" type="number" min="1" max="100" placeholder="Número entre 1 y 100">
+<button>Probar número</button>
+<div id="msg" class="msg"></div>
+<div id="attempts" class="muted">Intentos: 0</div></div>`;
+}
+</script></main></body></html>
