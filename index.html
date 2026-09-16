@@ -1,27 +1,72 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<!doctype html>
+<html lang="es"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Adivina el Número</title>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
-body{font-family:Arial;margin:0;background:#f4f6f8;color:#17202a}.wrap{max-width:1050px;margin:auto;padding:24px}.card{background:#fff;border-radius:18px;padding:22px;margin:14px 0;box-shadow:0 3px 14px #0001}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}.center{text-align:center}h1,h2{margin-top:0}input,button{font-size:18px;padding:12px;border-radius:10px;box-sizing:border-box}input{width:100%;border:1px solid #ccd3da}button{border:0;background:#17202a;color:#fff;cursor:pointer;margin:4px}button:disabled{opacity:.5}.secondary{background:#e9eef2;color:#17202a}.secret{font-size:42px;font-weight:bold}.pill{display:inline-block;padding:7px 12px;border-radius:999px;background:#eef2f5;margin:4px}.hidden{display:none}.notice{padding:12px;border-radius:10px;background:#fff7d6}table{width:100%;border-collapse:collapse}th,td{padding:9px;border-bottom:1px solid #ddd;text-align:left}.good{color:#16803c;font-weight:bold}.small{font-size:14px}
+body{font-family:Arial;margin:0;background:#f4f6f8;color:#17202a}.wrap{max-width:1050px;margin:auto;padding:24px}
+.card{background:#fff;border-radius:18px;padding:22px;margin:14px 0;box-shadow:0 3px 14px #0001}.center{text-align:center}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+input,button{font-size:18px;padding:12px;border-radius:10px;box-sizing:border-box}input{width:100%;border:1px solid #ccd3da}
+button{border:0;background:#17202a;color:#fff;cursor:pointer;margin:4px}button:disabled{opacity:.5}.secondary{background:#e9eef2;color:#17202a}
+.secret{font-size:42px;font-weight:bold}.pill{display:inline-block;padding:7px 12px;border-radius:999px;background:#eef2f5;margin:4px}
+.hidden{display:none}.notice{padding:12px;border-radius:10px;background:#fff7d6}table{width:100%;border-collapse:collapse}
+th,td{padding:9px;border-bottom:1px solid #ddd;text-align:left}.small{font-size:14px}.status{font-size:22px;font-weight:bold}
 </style></head><body><div class="wrap"><div id="app"></div></div>
 <script>
 const firebaseConfig={apiKey:"AIzaSyAJervQ7qPKrAncGWR20YL_yH2Ut399VY8",authDomain:"adivina-el-numero-b1239.firebaseapp.com",databaseURL:"https://adivina-el-numero-b1239-default-rtdb.firebaseio.com",projectId:"adivina-el-numero-b1239",storageBucket:"adivina-el-numero-b1239.firebasestorage.app",messagingSenderId:"1002866563599",appId:"1:1002866563599:web:bf0c83973c475477eba17a"};
-firebase.initializeApp(firebaseConfig);const db=firebase.database(),p=new URLSearchParams(location.search),modo=p.get("modo")||"profesor";let sala=p.get("sala")||"",jugador="",intentos=0,finalizado=false;
-const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+firebase.initializeApp(firebaseConfig);const db=firebase.database(),p=new URLSearchParams(location.search);
+const modo=p.get("modo")||"profesor";let sala=p.get("sala")||"",jugador="",intentos=0,finalizado=false;
 const rid=()=>Math.random().toString(36).slice(2,6).toUpperCase();
-async function crearSala(){sala=rid();await db.ref("rooms/"+sala).set({secret:Math.floor(Math.random()*100)+1,round:1,active:true});location.href=location.pathname+"?modo=proyeccion&sala="+sala}
-async function nuevaRonda(){let s=await db.ref("rooms/"+sala).get(),r=s.val()||{};await db.ref("rooms/"+sala).update({secret:Math.floor(Math.random()*100)+1,round:(r.round||1)+1,active:true})}
-function urlJugador(){return location.origin+location.pathname+"?modo=participante&sala="+sala}
-function profesor(){app.innerHTML=`<div class="card center"><h1>🎯 Adivina el Número — Docente</h1><p>Panel privado. El número secreto no aparece en la proyección.</p><button onclick="crearSala()">Crear nueva sala</button></div><div id="ctrl" class="hidden"><div class="grid"><div class="card"><h2>🔐 Control privado</h2>Número secreto<div id="secret" class="secret">—</div><div id="round"></div></div><div class="card"><h2>📺 Proyección</h2><p>Sala: <b id="code"></b></p><button onclick="window.open('?modo=proyeccion&sala='+sala,'_blank')">Abrir proyección</button></div></div><div class="card"><h2>📊 Control</h2><div id="stats"></div><button onclick="nuevaRonda()">🔄 Nueva ronda</button><button class="secondary" onclick="excel()">📥 Descargar Excel</button></div><div class="card"><h2>Resultados</h2><div id="table"></div></div></div>`}
-function proyeccion(){app.innerHTML=`<div class="card center"><h1>🎯 ADIVINA EL NÚMERO</h1><h2>Sala <span id="code"></span></h2><div id="qr"></div><p><b>Escanea el QR con tu celular</b></p><div id="stats"></div><div class="notice">🔒 El número secreto está oculto.</div></div><div class="card center"><h2>🏆 Resultados</h2><div id="table"></div></div>`}
-function participante(){app.innerHTML=`<div class="card center"><h1>🎯 Adivina el Número</h1><p>Sala: <b>${esc(sala)}</b></p><div id="namebox"><input id="name" placeholder="Escribe tu nombre"><br><br><button onclick="entrar()">Entrar al juego</button></div><div id="game" class="hidden"><p id="hello"></p><p>Intentos: <b id="att">0</b> / 4</p><input id="guess" type="number" min="1" max="100" placeholder="Número del 1 al 100"><br><br><button id="gb" onclick="adivinar()">Adivinar</button><h2 id="fb"></h2></div></div>`}
-function roomListen(){db.ref("rooms/"+sala).on("value",s=>{let r=s.val();if(!r)return;if(secret)secret.textContent=r.secret;if(round)round.textContent="Ronda "+r.round;if(code)code.textContent=sala;if(qr&&!qr.hasChildNodes())new QRCode(qr,{text:urlJugador(),width:260,height:260})})}
-function resultsListen(){db.ref("results/"+sala).on("value",s=>{let a=Object.values(s.val()||{});let last=a.at(-1)?.round;let players=new Set(a.filter(x=>x.round===last).map(x=>x.player)).size;if(stats)stats.innerHTML=`<span class="pill">👥 Participantes: ${players}</span><span class="pill">🏁 Resultados: ${a.length}</span>`;let rows=a.slice(-30).map(x=>`<tr><td>${esc(x.player)}</td><td>${x.round}</td><td>${x.attempts}</td><td>${x.lastGuess}</td><td>${x.status==="correct"?"🎯 Correcto":"⏱️ 4 intentos"}</td></tr>`).join("");if(table)table.innerHTML=`<table><tr><th>Participante</th><th>Ronda</th><th>Intentos</th><th>Último número</th><th>Resultado</th></tr>${rows}</table>`})}
-function entrar(){jugador=(name.value||"").trim();if(!jugador)return alert("Escribe tu nombre.");localStorage.setItem("adivinaPlayer",jugador);namebox.classList.add("hidden");game.classList.remove("hidden");hello.textContent="¡Vamos, "+jugador+"!"}
-async function adivinar(){if(finalizado)return;let v=Number(guess.value);if(!Number.isInteger(v)||v<1||v>100)return alert("Ingresa un entero entre 1 y 100.");let s=await db.ref("rooms/"+sala).get(),r=s.val();if(!r)return;intentos++;let st=v===r.secret?"correct":v<r.secret?"higher":"lower";att.textContent=intentos;fb.textContent=st==="correct"?"🎯 ¡CORRECTO!":st==="higher"?"⬆️ El número es MAYOR":"⬇️ El número es MENOR";let key=btoa(unescape(encodeURIComponent(jugador))).replace(/[/+=]/g,"").slice(0,30)+"_"+Date.now();await db.ref("guesses/"+sala+"/"+r.round+"/"+key+"/"+intentos).set({player:jugador,round:r.round,attempt:intentos,guess:v,status:st,time:Date.now()});guess.value="";if(st==="correct"||intentos===4){finalizado=true;gb.disabled=true;if(st!=="correct")fb.textContent="⏱️ Se acabaron tus 4 intentos.";await db.ref("results/"+sala+"/"+r.round+"_"+key).set({player:jugador,round:r.round,attempts:intentos,lastGuess:v,status:st==="correct"?"correct":"failed",finishedAt:Date.now()})}}
-async function excel(){let[g,r]=await Promise.all([db.ref("guesses/"+sala).get(),db.ref("results/"+sala).get()]),d=[],res=[];Object.keys(g.val()||{}).forEach(ro=>Object.values(g.val()[ro]||{}).forEach(pk=>Object.values(pk||{}).forEach(x=>d.push({"Sala":sala,"Ronda":+ro,"Participante":x.player,"Intento":x.attempt,"Número ingresado":x.guess,"Resultado":x.status==="correct"?"Correcto":x.status==="higher"?"Mayor":"Menor","Fecha/hora":new Date(x.time).toLocaleString("es-PE")}))));Object.values(r.val()||{}).forEach(x=>res.push({"Sala":sala,"Ronda":x.round,"Participante":x.player,"Intentos utilizados":x.attempts,"Último número":x.lastGuess,"Resultado":x.status==="correct"?"Correcto":"No acertó en 4 intentos","Fecha/hora":new Date(x.finishedAt).toLocaleString("es-PE")}));let wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(d),"Todos los intentos");XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(res),"Resumen");XLSX.writeFile(wb,"Adivina_el_numero_"+sala+".xlsx")}
-if(modo==="participante"){participante()}else if(modo==="proyeccion"){proyeccion();roomListen();resultsListen()}else{profesor();if(sala){ctrl.classList.remove("hidden");code.textContent=sala;roomListen();resultsListen()}}
+const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+
+function profesor(){app.innerHTML=`<div class="card center"><h1>🎯 Adivina el Número — Docente</h1><p>Panel privado del docente.</p>
+<div id="newbox"><button onclick="crearSala()">Crear nueva sala</button></div></div>
+<div id="ctrl" class="hidden"><div class="grid">
+<div class="card"><h2>🔐 Configurar ronda</h2><p>Escribe el número secreto (1 a 100):</p>
+<input id="secretInput" type="number" min="1" max="100" placeholder="Ejemplo: 49">
+<button onclick="iniciarRonda()">▶️ Iniciar ronda</button><div id="secretMsg"></div></div>
+<div class="card"><h2>📺 Proyección</h2><p>Sala: <b id="code"></b></p><button onclick="window.open('?modo=proyeccion&sala='+sala,'_blank')">Abrir proyección</button>
+<p class="small">El número secreto no aparece en esta pantalla.</p></div></div>
+<div class="card"><h2>📊 Control</h2><div id="stats"></div>
+<button class="secondary" onclick="descargarExcel()">📥 Descargar Excel</button></div>
+<div class="card"><h2>Últimos resultados</h2><div id="table"></div></div></div>`}
+
+async function crearSala(){sala=rid();await db.ref("rooms/"+sala).set({round:0,active:false});ctrl.classList.remove("hidden");code.textContent=sala;newbox.innerHTML="<p>✅ Sala creada: <b>"+sala+"</b></p>";roomListen();resultsListen()}
+async function iniciarRonda(){let n=Number(secretInput.value);if(!Number.isInteger(n)||n<1||n>100)return alert("Ingresa un entero entre 1 y 100.");let s=await db.ref("rooms/"+sala).get(),r=s.val()||{};let round=(r.round||0)+1;await db.ref("rooms/"+sala).update({secret:n,round,active:true});secretMsg.innerHTML='<p class="status">🔒 Número secreto configurado. Ronda '+round+' iniciada.</p>';secretInput.value=""}
+
+function proyeccion(){app.innerHTML=`<div class="card center"><h1>🎯 ADIVINA EL NÚMERO</h1><h2>Sala <span id="code"></span></h2><div id="qr"></div><p><b>Escanea el QR con tu celular</b></p><div id="stats"></div>
+<div class="notice">🔒 El número secreto está oculto.</div></div><div class="card center"><h2>🏆 Resultados</h2><div id="table"></div></div>`}
+
+function participante(){app.innerHTML=`<div class="card center"><h1>🎯 Adivina el Número</h1><p>Sala: <b>${esc(sala)}</b></p>
+<div id="namebox"><input id="name" placeholder="Escribe tu nombre"><br><br><button onclick="entrar()">Entrar al juego</button></div>
+<div id="game" class="hidden"><p id="hello"></p><p>Intentos: <b id="att">0</b> / 4</p>
+<input id="guess" type="number" min="1" max="100" placeholder="Número del 1 al 100"><br><br><button id="gb" onclick="adivinar()">Adivinar</button><h2 id="fb"></h2></div></div>`}
+
+function roomListen(){db.ref("rooms/"+sala).on("value",s=>{let r=s.val();if(!r)return;
+if(document.getElementById("code"))document.getElementById("code").textContent=sala;
+if(document.getElementById("qr")&&!qr.hasChildNodes())new QRCode(qr,{text:location.origin+location.pathname+"?modo=participante&sala="+sala,width:260,height:260});
+})}
+function resultsListen(){db.ref("results/"+sala).on("value",s=>{let a=Object.values(s.val()||{}),last=a.at(-1)?.round;
+if(document.getElementById("stats"))stats.innerHTML=`<span class="pill">👥 Participantes con resultado: ${new Set(a.filter(x=>x.round===last).map(x=>x.player)).size}</span><span class="pill">🏁 Resultados: ${a.length}</span>`;
+let rows=a.slice(-30).map(x=>`<tr><td>${esc(x.player)}</td><td>${x.round}</td><td>${x.attempts}</td><td>${x.lastGuess}</td><td>${x.status==="correct"?"🎯 Correcto":"⏱️ 4 intentos"}</td></tr>`).join("");
+if(document.getElementById("table"))table.innerHTML=`<table><tr><th>Participante</th><th>Ronda</th><th>Intentos</th><th>Último número</th><th>Resultado</th></tr>${rows}</table>`})}
+
+function entrar(){jugador=(name.value||"").trim();if(!jugador)return alert("Escribe tu nombre.");namebox.classList.add("hidden");game.classList.remove("hidden");hello.textContent="¡Vamos, "+jugador+"!";db.ref("rooms/"+sala).on("value",s=>{let r=s.val()||{};if(r.active&&r.round>0){ }})}
+async function adivinar(){if(finalizado)return;let v=Number(guess.value);if(!Number.isInteger(v)||v<1||v>100)return alert("Ingresa un entero entre 1 y 100.");
+let s=await db.ref("rooms/"+sala).get(),r=s.val();if(!r||!r.active||!r.round)return alert("El docente aún no ha iniciado una ronda.");intentos++;
+let st=v===r.secret?"correct":v<r.secret?"higher":"lower";att.textContent=intentos;fb.textContent=st==="correct"?"🎯 ¡CORRECTO!":st==="higher"?"⬆️ El número es MAYOR":"⬇️ El número es MENOR";
+let key=btoa(unescape(encodeURIComponent(jugador))).replace(/[/+=]/g,"").slice(0,30)+"_"+Date.now();
+await db.ref("guesses/"+sala+"/"+r.round+"/"+key+"/"+intentos).set({player:jugador,round:r.round,attempt:intentos,guess:v,status:st,time:Date.now()});guess.value="";
+if(st==="correct"||intentos===4){finalizado=true;gb.disabled=true;if(st!=="correct")fb.textContent="⏱️ Se acabaron tus 4 intentos.";
+await db.ref("results/"+sala+"/"+r.round+"_"+key).set({player:jugador,round:r.round,attempts:intentos,lastGuess:v,status:st==="correct"?"correct":"failed",finishedAt:Date.now()})}}
+async function descargarExcel(){let[g,r]=await Promise.all([db.ref("guesses/"+sala).get(),db.ref("results/"+sala).get()]),d=[],res=[];
+let gv=g.val()||{},rv=r.val()||{};
+Object.keys(gv).forEach(ro=>Object.values(gv[ro]||{}).forEach(pk=>Object.values(pk||{}).forEach(x=>d.push({"Sala":sala,"Ronda":+ro,"Participante":x.player,"Intento":x.attempt,"Número ingresado":x.guess,"Resultado":x.status==="correct"?"Correcto":x.status==="higher"?"Mayor":"Menor","Fecha/hora":new Date(x.time).toLocaleString("es-PE")}))));
+Object.values(rv).forEach(x=>res.push({"Sala":sala,"Ronda":x.round,"Participante":x.player,"Intentos utilizados":x.attempts,"Último número":x.lastGuess,"Resultado":x.status==="correct"?"Correcto":"No acertó en 4 intentos","Fecha/hora":new Date(x.finishedAt).toLocaleString("es-PE")}));
+let wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(d),"Todos los intentos");XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(res),"Resumen");XLSX.writeFile(wb,"Adivina_el_numero_"+sala+".xlsx")}
+if(modo==="participante")participante();else if(modo==="proyeccion"){proyeccion();roomListen();resultsListen()}else profesor();
 </script></body></html>
