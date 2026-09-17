@@ -39,7 +39,7 @@ async function crearSala(){sala=rid();await db.ref("rooms/"+sala).set({round:0,a
 async function iniciarRonda(){let n=Number(document.getElementById("secretInput").value);if(!Number.isInteger(n)||n<1||n>100)return alert("Ingresa un entero entre 1 y 100.");let s=await db.ref("rooms/"+sala).get(),r=s.val()||{};let round=(r.round||0)+1;await db.ref("rooms/"+sala).update({secret:n,round,active:true});document.getElementById("secretMsg").innerHTML='<p class="status">🔒 Número secreto configurado. Ronda '+round+' iniciada.</p>';document.getElementById("secretInput").value=""}
 
 function proyeccion(){app.innerHTML=`<div class="card center"><h1>🎯 ADIVINA EL NÚMERO</h1><h2>Sala <span id="code"></span></h2><div id="qr"></div><p><b>Escanea el QR con tu celular</b></p><div id="stats"></div>
-<div class="notice">🔒 El número secreto está oculto.</div></div><div class="card center"><h2>🏆 Resultados</h2><div id="table"></div></div>`}
+<div class="notice">🔒 El número secreto está oculto.</div></div>`}
 
 function participante(){app.innerHTML=`<div class="card center"><h1>🎯 Adivina el Número</h1><p>Sala: <b>${esc(sala)}</b></p>
 <div id="namebox"><input id="name" placeholder="Escribe tu nombre"><br><br><button onclick="entrar()">Entrar al juego</button></div>
@@ -51,7 +51,7 @@ if(document.getElementById("code"))document.getElementById("code").textContent=s
 const qrEl=document.getElementById("qr");if(qrEl&&!qrEl.hasChildNodes())new QRCode(qrEl,{text:location.origin+location.pathname+"?modo=participante&sala="+sala,width:260,height:260});
 })}
 function resultsListen(){db.ref("results/"+sala).on("value",s=>{let a=Object.values(s.val()||{}),last=a.at(-1)?.round;
-if(document.getElementById("stats"))stats.innerHTML=`<span class="pill">👥 Participantes con resultado: ${new Set(a.filter(x=>x.round===last).map(x=>x.player)).size}</span><span class="pill">🏁 Resultados: ${a.length}</span>`;
+if(document.getElementById("stats")){const n=new Set(a.filter(x=>x.round===last).map(x=>x.player)).size;document.getElementById("stats").innerHTML=modo==="proyeccion"?`<span class="pill">👥 Participantes: ${n}</span>`:`<span class="pill">👥 Participantes con resultado: ${n}</span><span class="pill">🏁 Resultados: ${a.length}</span>`;}
 let rows=a.slice(-30).map(x=>`<tr><td>${esc(x.player)}</td><td>${x.round}</td><td>${x.attempts}</td><td>${x.lastGuess}</td><td>${x.status==="correct"?"🎯 Correcto":"⏱️ 4 intentos"}</td></tr>`).join("");
 if(document.getElementById("table"))table.innerHTML=`<table><tr><th>Participante</th><th>Ronda</th><th>Intentos</th><th>Último número</th><th>Resultado</th></tr>${rows}</table>`})}
 
