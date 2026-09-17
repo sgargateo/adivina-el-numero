@@ -35,8 +35,8 @@ function profesor(){app.innerHTML=`<div class="card center"><h1>🎯 Adivina el 
 <button class="secondary" onclick="descargarExcel()">📥 Descargar Excel</button></div>
 <div class="card"><h2>Últimos resultados</h2><div id="table"></div></div></div>`}
 
-async function crearSala(){sala=rid();await db.ref("rooms/"+sala).set({round:0,active:false});ctrl.classList.remove("hidden");code.textContent=sala;newbox.innerHTML="<p>✅ Sala creada: <b>"+sala+"</b></p>";roomListen();resultsListen()}
-async function iniciarRonda(){let n=Number(secretInput.value);if(!Number.isInteger(n)||n<1||n>100)return alert("Ingresa un entero entre 1 y 100.");let s=await db.ref("rooms/"+sala).get(),r=s.val()||{};let round=(r.round||0)+1;await db.ref("rooms/"+sala).update({secret:n,round,active:true});secretMsg.innerHTML='<p class="status">🔒 Número secreto configurado. Ronda '+round+' iniciada.</p>';secretInput.value=""}
+async function crearSala(){sala=rid();await db.ref("rooms/"+sala).set({round:0,active:false});document.getElementById("ctrl").classList.remove("hidden");document.getElementById("code").textContent=sala;document.getElementById("newbox").innerHTML="<p>✅ Sala creada: <b>"+sala+"</b></p>";roomListen();resultsListen()}
+async function iniciarRonda(){let n=Number(document.getElementById("secretInput").value);if(!Number.isInteger(n)||n<1||n>100)return alert("Ingresa un entero entre 1 y 100.");let s=await db.ref("rooms/"+sala).get(),r=s.val()||{};let round=(r.round||0)+1;await db.ref("rooms/"+sala).update({secret:n,round,active:true});document.getElementById("secretMsg").innerHTML='<p class="status">🔒 Número secreto configurado. Ronda '+round+' iniciada.</p>';document.getElementById("secretInput").value=""}
 
 function proyeccion(){app.innerHTML=`<div class="card center"><h1>🎯 ADIVINA EL NÚMERO</h1><h2>Sala <span id="code"></span></h2><div id="qr"></div><p><b>Escanea el QR con tu celular</b></p><div id="stats"></div>
 <div class="notice">🔒 El número secreto está oculto.</div></div><div class="card center"><h2>🏆 Resultados</h2><div id="table"></div></div>`}
@@ -48,20 +48,20 @@ function participante(){app.innerHTML=`<div class="card center"><h1>🎯 Adivina
 
 function roomListen(){db.ref("rooms/"+sala).on("value",s=>{let r=s.val();if(!r)return;
 if(document.getElementById("code"))document.getElementById("code").textContent=sala;
-if(document.getElementById("qr")&&!qr.hasChildNodes())new QRCode(qr,{text:location.origin+location.pathname+"?modo=participante&sala="+sala,width:260,height:260});
+const qrEl=document.getElementById("qr");if(qrEl&&!qrEl.hasChildNodes())new QRCode(qrEl,{text:location.origin+location.pathname+"?modo=participante&sala="+sala,width:260,height:260});
 })}
 function resultsListen(){db.ref("results/"+sala).on("value",s=>{let a=Object.values(s.val()||{}),last=a.at(-1)?.round;
 if(document.getElementById("stats"))stats.innerHTML=`<span class="pill">👥 Participantes con resultado: ${new Set(a.filter(x=>x.round===last).map(x=>x.player)).size}</span><span class="pill">🏁 Resultados: ${a.length}</span>`;
 let rows=a.slice(-30).map(x=>`<tr><td>${esc(x.player)}</td><td>${x.round}</td><td>${x.attempts}</td><td>${x.lastGuess}</td><td>${x.status==="correct"?"🎯 Correcto":"⏱️ 4 intentos"}</td></tr>`).join("");
 if(document.getElementById("table"))table.innerHTML=`<table><tr><th>Participante</th><th>Ronda</th><th>Intentos</th><th>Último número</th><th>Resultado</th></tr>${rows}</table>`})}
 
-function entrar(){jugador=(name.value||"").trim();if(!jugador)return alert("Escribe tu nombre.");namebox.classList.add("hidden");game.classList.remove("hidden");hello.textContent="¡Vamos, "+jugador+"!";db.ref("rooms/"+sala).on("value",s=>{let r=s.val()||{};if(r.active&&r.round>0){ }})}
-async function adivinar(){if(finalizado)return;let v=Number(guess.value);if(!Number.isInteger(v)||v<1||v>100)return alert("Ingresa un entero entre 1 y 100.");
+function entrar(){jugador=(document.getElementById("name").value||"").trim();if(!jugador)return alert("Escribe tu nombre.");document.getElementById("namebox").classList.add("hidden");document.getElementById("game").classList.remove("hidden");document.getElementById("hello").textContent="¡Vamos, "+jugador+"!";db.ref("rooms/"+sala).on("value",s=>{let r=s.val()||{};if(r.active&&r.round>0){ }})}
+async function adivinar(){if(finalizado)return;let v=Number(document.getElementById("guess").value);if(!Number.isInteger(v)||v<1||v>100)return alert("Ingresa un entero entre 1 y 100.");
 let s=await db.ref("rooms/"+sala).get(),r=s.val();if(!r||!r.active||!r.round)return alert("El docente aún no ha iniciado una ronda.");intentos++;
-let st=v===r.secret?"correct":v<r.secret?"higher":"lower";att.textContent=intentos;fb.textContent=st==="correct"?"🎯 ¡CORRECTO!":st==="higher"?"⬆️ El número es MAYOR":"⬇️ El número es MENOR";
+let st=v===r.secret?"correct":v<r.secret?"higher":"lower";document.getElementById("att").textContent=intentos;document.getElementById("fb").textContent=st=="correct"?"🎯 ¡CORRECTO!":st==="higher"?"⬆️ El número es MAYOR":"⬇️ El número es MENOR";
 let key=btoa(unescape(encodeURIComponent(jugador))).replace(/[/+=]/g,"").slice(0,30)+"_"+Date.now();
-await db.ref("guesses/"+sala+"/"+r.round+"/"+key+"/"+intentos).set({player:jugador,round:r.round,attempt:intentos,guess:v,status:st,time:Date.now()});guess.value="";
-if(st==="correct"||intentos===4){finalizado=true;gb.disabled=true;if(st!=="correct")fb.textContent="⏱️ Se acabaron tus 4 intentos.";
+await db.ref("guesses/"+sala+"/"+r.round+"/"+key+"/"+intentos).set({player:jugador,round:r.round,attempt:intentos,guess:v,status:st,time:Date.now()});document.getElementById("guess").value="";
+if(st==="correct"||intentos===4){finalizado=true;document.getElementById("gb").disabled=true;if(st!=="correct")document.getElementById("fb").textContent="⏱️ Se acabaron tus 4 intentos.";
 await db.ref("results/"+sala+"/"+r.round+"_"+key).set({player:jugador,round:r.round,attempts:intentos,lastGuess:v,status:st==="correct"?"correct":"failed",finishedAt:Date.now()})}}
 async function descargarExcel(){let[g,r]=await Promise.all([db.ref("guesses/"+sala).get(),db.ref("results/"+sala).get()]),d=[],res=[];
 let gv=g.val()||{},rv=r.val()||{};
